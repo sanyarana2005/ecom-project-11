@@ -247,32 +247,7 @@ def login():
             return jsonify({"message": "Invalid credentials"}), 401
         
         user_id, username, hashed_password, role, name, department, department_id = user_row
-    except Exception as db_error:
-        logging.error(f"Database query error: {str(db_error)}")
-        logging.error(f"Error type: {type(db_error).__name__}")
-        logging.error(f"Error details: {str(db_error)}")
-        # Try to initialize database if connection fails
-        try:
-            logging.info("Attempting to reinitialize database...")
-            init_db()
-            conn = db_conn()
-            cur = conn.cursor()
-            cur.execute("SELECT id, username, password, role, name, department, department_id FROM users WHERE username = ?", (email,))
-            user_row = cur.fetchone()
-            if not user_row:
-                conn.close()
-                return jsonify({"message": "Invalid credentials"}), 401
-            user_id, username, hashed_password, role, name, department, department_id = user_row
-        except Exception as init_error:
-            logging.error(f"Database initialization failed: {str(init_error)}")
-            logging.error(f"Init error type: {type(init_error).__name__}")
-            if 'conn' in locals():
-                try:
-                    conn.close()
-                except:
-                    pass
-            return jsonify({"message": f"Database error: {str(init_error)}"}), 500
-    
+        
         # Verify password
         # Check if password is hashed (starts with $2b$) or plain text (for migration)
         password_valid = False
@@ -315,6 +290,66 @@ def login():
                 "department_id": department_id or 1
             }
         })
+    except Exception as db_error:
+        logging.error(f"Database query error: {str(db_error)}")
+        logging.error(f"Error type: {type(db_error).__name__}")
+        logging.error(f"Error details: {str(db_error)}")
+        # Try to initialize database if connection fails
+        try:
+            logging.info("Attempting to reinitialize database...")
+            init_db()
+            conn = db_conn()
+            cur = conn.cursor()
+            cur.execute("SELECT id, username, password, role, name, department, department_id FROM users WHERE username = ?", (email,))
+            user_row = cur.fetchone()
+            if not user_row:
+                if 'conn' in locals():
+                    conn.close()
+                return jsonify({"message": "Invalid credentials"}), 401
+            user_id, username, hashed_password, role, name, department, department_id = user_row
+            
+            # Verify password
+            password_valid = False
+            if hashed_password and hashed_password.startswith('$2b$'):
+                try:
+                    password_valid = bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+                except Exception as e:
+                    logging.error(f"Bcrypt check error: {str(e)}")
+                    password_valid = False
+            else:
+                if password == hashed_password:
+                    password_valid = True
+                    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    cur.execute("UPDATE users SET password = ? WHERE id = ?", (hashed, user_id))
+                    conn.commit()
+            
+            if not password_valid:
+                conn.close()
+                return jsonify({"message": "Invalid credentials"}), 401
+            
+            conn.close()
+            token = secrets.token_urlsafe(32)
+            TOKEN_STORE[token] = user_id
+            return jsonify({
+                "token": token,
+                "user": {
+                    "id": user_id,
+                    "name": name or username,
+                    "email": email,
+                    "role": role,
+                    "department": department or "Computer Science",
+                    "department_id": department_id or 1
+                }
+            })
+        except Exception as init_error:
+            logging.error(f"Database initialization failed: {str(init_error)}")
+            logging.error(f"Init error type: {type(init_error).__name__}")
+            if 'conn' in locals():
+                try:
+                    conn.close()
+                except:
+                    pass
+            return jsonify({"message": f"Database error: {str(init_error)}"}), 500
     except Exception as e:
         logging.error(f"Login error: {str(e)}")
         if 'conn' in locals():
