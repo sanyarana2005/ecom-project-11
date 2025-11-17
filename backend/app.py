@@ -193,21 +193,23 @@ def init_db():
 
         conn.commit()
         
-        # Seed demo bookings if none exist for demo users
-        # Check if bookings exist for demo users specifically
+        # Seed demo bookings - always ensure demo users have bookings
+        # First, delete any existing bookings for demo users to avoid duplicates
         cur.execute("""
-            SELECT COUNT(*) FROM bookings b
-            JOIN users u ON u.id = b.user_id
-            WHERE u.username IN ('student@gmail.com', 'teacher@gmail.com', 'hod@gmail.com')
+            DELETE FROM bookings 
+            WHERE user_id IN (
+                SELECT id FROM users 
+                WHERE username IN ('student@gmail.com', 'teacher@gmail.com', 'hod@gmail.com')
+            )
         """)
-        demo_bookings_count = cur.fetchone()[0]
+        deleted_count = cur.rowcount
+        if deleted_count > 0:
+            logging.info(f"Cleaned up {deleted_count} existing demo bookings")
         
-        if demo_bookings_count == 0:
-            logging.info("Seeding demo bookings...")
-            _seed_demo_bookings(cur)
-            conn.commit()
-        else:
-            logging.info(f"Demo bookings already exist ({demo_bookings_count} found), skipping seed")
+        # Now seed fresh demo bookings
+        logging.info("Seeding demo bookings...")
+        _seed_demo_bookings(cur)
+        conn.commit()
         
         conn.close()
         logging.info("DB initialization complete.")
