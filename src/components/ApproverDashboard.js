@@ -272,15 +272,11 @@ const ApproverDashboard = () => {
             <h3 className="text-lg font-black text-black uppercase tracking-wide mb-4">UPCOMING EVENTS</h3>
             <div className="text-4xl font-black text-purple-600">
               {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const upcomingCount = (calendarEvents || []).filter(event => {
-                  if (event.type === 'timetable') return false;
-                  const eventDate = new Date(event.start);
-                  eventDate.setHours(0, 0, 0, 0);
-                  return eventDate >= today;
+                // Count all booking events (both upcoming and conducted)
+                const allBookingsCount = (calendarEvents || []).filter(event => {
+                  return event.type !== 'timetable';
                 }).length;
-                return upcomingCount;
+                return allBookingsCount;
               })()}
             </div>
           </div>
@@ -307,33 +303,104 @@ const ApproverDashboard = () => {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto"></div>
                 </div>
               ) : (() => {
-                // Filter calendar events to show only booking events (not timetable) that are today or in the future
+                // Filter calendar events to show all booking events (not timetable) - both upcoming and conducted
+                const allBookings = (calendarEvents || []).filter(event => {
+                  // Only show booking events (not timetable)
+                  if (event.type === 'timetable') return false;
+                  return true; // Show all booking events (both past and future)
+                }).sort((a, b) => new Date(b.start) - new Date(a.start)); // Sort by date (newest first)
+                
+                // Separate into upcoming and conducted
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
-                const upcomingBookings = (calendarEvents || []).filter(event => {
-                  // Only show booking events (not timetable)
-                  if (event.type === 'timetable') return false;
-                  
-                  // Only show events that are today or in the future
+                const upcomingBookings = allBookings.filter(event => {
                   const eventDate = new Date(event.start);
                   eventDate.setHours(0, 0, 0, 0);
                   return eventDate >= today;
-                }).sort((a, b) => new Date(a.start) - new Date(b.start)); // Sort by date
+                });
                 
-                return upcomingBookings.length === 0 ? (
+                const conductedBookings = allBookings.filter(event => {
+                  const eventDate = new Date(event.start);
+                  eventDate.setHours(0, 0, 0, 0);
+                  return eventDate < today;
+                });
+                
+                const allBookingsToShow = [...upcomingBookings, ...conductedBookings];
+                
+                return allBookingsToShow.length === 0 ? (
                   <div className="text-center py-6">
                     <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No upcoming events</h3>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No booking events</h3>
                     <p className="mt-1 text-xs text-gray-500">
                       There are currently no booking events scheduled.
                     </p>
                   </div>
                 ) : (
                 <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                  {upcomingBookings.map((event) => {
+                  {/* Upcoming Events Section */}
+                  {upcomingBookings.length > 0 && (
+                    <>
+                      <div className="sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 z-10">
+                        <h3 className="text-md font-black text-black uppercase">Upcoming Events</h3>
+                      </div>
+                      {upcomingBookings.map((event) => {
+                        const displayStatus = getBookingDisplayStatus(event);
+                        return (
+                          <div key={event.id} className="border-4 border-black p-4 bg-white shadow-brutal">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-3">
+                                  <h3 className="text-lg font-black text-black uppercase">{event.title || 'Untitled Event'}</h3>
+                                  <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
+                                    event.resource === 'Seminar Hall' ? 'bg-blue-500 text-white' :
+                                    event.resource === 'Auditorium' ? 'bg-red-500 text-white' :
+                                    'bg-green-500 text-white'
+                                  }`}>
+                                    {event.resource}
+                                  </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold text-black mb-3">
+                                  <div>
+                                    <span className="uppercase">Requester:</span> {event.requester || 'Unknown'}
+                                  </div>
+                                  <div>
+                                    <span className="uppercase">Date & Time:</span> {formatDateTime(event.start)}
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <span className="uppercase">Purpose:</span> {event.purpose || 'N/A'}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
+                                    displayStatus === 'pending' ? 'bg-yellow-500 text-black' :
+                                    displayStatus === 'conducted' ? 'bg-blue-500 text-white' :
+                                    'bg-yellow-500 text-black'
+                                  }`}>
+                                    Status: {displayStatus.toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                  
+                  {/* Conducted Events Section */}
+                  {conductedBookings.length > 0 && (
+                    <>
+                      {upcomingBookings.length > 0 && (
+                        <div className="sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 mt-6 z-10">
+                          <h3 className="text-md font-black text-black uppercase">Conducted Events</h3>
+                        </div>
+                      )}
+                      {conductedBookings.map((event) => {
                     const displayStatus = getBookingDisplayStatus(event);
                     return (
                       <div key={event.id} className="border-4 border-black p-4 bg-white shadow-brutal">
