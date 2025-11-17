@@ -80,9 +80,9 @@ class NotificationService {
   }
 
   bookingPending(resource, date, time) {
-    return this.warning(
-      '⏳ Waiting for Approval',
-      `${resource} request submitted for ${date} at ${time}`,
+    return this.success(
+      '✅ Slot Booked',
+      `${resource} booked for ${date} at ${time}`,
       6000
     );
   }

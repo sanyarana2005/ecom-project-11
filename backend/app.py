@@ -1,11 +1,9 @@
-# app.py - Fixed Flask backend for college booking (Flask + SQLite)
-# All routes now have /api prefix and match frontend expectations
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import hashlib
 import secrets
@@ -127,7 +125,7 @@ def init_db():
             start_time TEXT,
             end_time TEXT,
             purpose TEXT,
-            status TEXT CHECK(status IN ('pending','approved','rejected','cancelled')) DEFAULT 'pending',
+            status TEXT CHECK(status IN ('pending','approved','rejected','cancelled','conducted')) DEFAULT 'pending',
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id),
             FOREIGN KEY(resource_id) REFERENCES resources(id)
@@ -194,6 +192,14 @@ def init_db():
             )
 
         conn.commit()
+        
+        # Seed demo bookings if none exist
+        cur.execute("SELECT COUNT(*) FROM bookings")
+        if cur.fetchone()[0] == 0:
+            logging.info("Seeding demo bookings...")
+            _seed_demo_bookings(cur)
+            conn.commit()
+        
         conn.close()
         logging.info("DB initialization complete.")
     except Exception as e:
@@ -201,6 +207,80 @@ def init_db():
         if 'conn' in locals():
             conn.close()
         raise
+
+def _seed_demo_bookings(cur):
+    """Seed demo bookings for student@gmail.com, teacher@gmail.com, and hod@gmail.com"""
+    try:
+        # Get specific user IDs by email
+        cur.execute("SELECT id FROM users WHERE username = 'student@gmail.com'")
+        student_result = cur.fetchone()
+        student_id = student_result[0] if student_result else None
+        
+        cur.execute("SELECT id FROM users WHERE username = 'teacher@gmail.com'")
+        teacher_result = cur.fetchone()
+        teacher_id = teacher_result[0] if teacher_result else None
+        
+        cur.execute("SELECT id FROM users WHERE username = 'hod@gmail.com'")
+        hod_result = cur.fetchone()
+        hod_id = hod_result[0] if hod_result else None
+        
+        if not student_id or not teacher_id or not hod_id:
+            logging.warning("Demo users not found, skipping booking seed")
+            return
+        
+        # Get resource IDs
+        cur.execute("SELECT id, name FROM resources ORDER BY id")
+        resources = cur.fetchall()
+        resource_map = {name: id for id, name in resources}
+        
+        if not resource_map:
+            logging.warning("Resources not found, skipping booking seed")
+            return
+        
+        today = datetime.now()
+        
+        # Demo bookings
+        demo_bookings = [
+            # Student bookings
+            (student_id, resource_map.get('Lab', 3), "Machine Learning Workshop",
+             (today + timedelta(days=6)).strftime("%Y-%m-%d"), "10:00", "12:00",
+             "Hands-on workshop on neural networks and deep learning", "pending"),
+            (student_id, resource_map.get('Seminar Hall', 1), "Project Presentation",
+             (today + timedelta(days=7)).strftime("%Y-%m-%d"), "14:00", "16:00",
+             "Final year project presentation and demonstration", "pending"),
+            (student_id, resource_map.get('Seminar Hall', 1), "Project Demo Day",
+             (today + timedelta(days=9)).strftime("%Y-%m-%d"), "14:00", "16:00",
+             "Demonstrating final year projects to faculty and peers", "pending"),
+            # Teacher bookings
+            (teacher_id, resource_map.get('Auditorium', 2), "Faculty Development Session",
+             (today - timedelta(days=8)).strftime("%Y-%m-%d"), "14:00", "16:00",
+             "Training session on modern teaching methodologies", "conducted"),
+            (teacher_id, resource_map.get('Seminar Hall', 1), "Research Presentation",
+             (today + timedelta(days=3)).strftime("%Y-%m-%d"), "10:00", "12:00",
+             "Presenting research findings to department", "pending"),
+            (teacher_id, resource_map.get('Lab', 3), "Programming Workshop",
+             (today + timedelta(days=5)).strftime("%Y-%m-%d"), "13:00", "15:00",
+             "Teaching advanced programming concepts", "pending"),
+            (teacher_id, resource_map.get('Seminar Hall', 1), "Curriculum Review Meeting",
+             (today + timedelta(days=7)).strftime("%Y-%m-%d"), "11:00", "13:00",
+             "Reviewing and updating course curriculum", "pending"),
+            # HOD bookings
+            (hod_id, resource_map.get('Auditorium', 2), "Department Annual Meeting",
+             (today - timedelta(days=5)).strftime("%Y-%m-%d"), "10:00", "12:00",
+             "Annual department meeting to discuss achievements and plans", "conducted"),
+            (hod_id, resource_map.get('Seminar Hall', 1), "Industry Collaboration Workshop",
+             (today + timedelta(days=10)).strftime("%Y-%m-%d"), "09:00", "11:00",
+             "Workshop on industry-academia collaboration", "pending"),
+        ]
+        
+        cur.executemany("""
+            INSERT INTO bookings (user_id, resource_id, title, date, start_time, end_time, purpose, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, demo_bookings)
+        
+        logging.info(f"Seeded {len(demo_bookings)} demo bookings")
+    except Exception as e:
+        logging.warning(f"Failed to seed demo bookings: {str(e)}")
 
 # ---------------- Overlap check ----------------
 def has_overlap(cur, resource_id, date, start_time, end_time, ignore_booking_id=None):
@@ -489,26 +569,29 @@ def get_calendar_events():
     conn = db_conn()
     cur = conn.cursor()
     
+    # Get today's date for status determination
+    today = datetime.now().date()
+    
     if resource_id:
-        # Get events for specific resource
+        # Get events for specific resource - show all events (pending, conducted, approved)
         cur.execute("""
             SELECT b.id, b.title, r.name, b.date, b.start_time, b.end_time, 
                    b.purpose, b.status, u.name, b.user_id
             FROM bookings b
             JOIN resources r ON r.id = b.resource_id
             LEFT JOIN users u ON u.id = b.user_id
-            WHERE b.resource_id = ? AND b.status IN ('approved', 'pending')
+            WHERE b.resource_id = ? AND b.status IN ('pending', 'conducted', 'approved')
             ORDER BY b.date, b.start_time
         """, (resource_id,))
     else:
-        # Get all events
+        # Get all events - show all events (pending, conducted, approved)
         cur.execute("""
             SELECT b.id, b.title, r.name, b.date, b.start_time, b.end_time, 
                    b.purpose, b.status, u.name, b.user_id
             FROM bookings b
             JOIN resources r ON r.id = b.resource_id
             LEFT JOIN users u ON u.id = b.user_id
-            WHERE b.status IN ('approved', 'pending')
+            WHERE b.status IN ('pending', 'conducted', 'approved')
             ORDER BY b.date, b.start_time
         """)
     
@@ -522,6 +605,13 @@ def get_calendar_events():
         start_datetime = f"{date}T{start_time}:00"
         end_datetime = f"{date}T{end_time}:00"
         
+        # Determine display status based on date
+        booking_date = datetime.strptime(date, "%Y-%m-%d").date()
+        if booking_date < today:
+            display_status = 'conducted'
+        else:
+            display_status = 'pending'
+        
         events.append({
             "id": booking_id,
             "title": title,
@@ -529,7 +619,7 @@ def get_calendar_events():
             "start": start_datetime,
             "end": end_datetime,
             "purpose": purpose,
-            "status": status,
+            "status": display_status,  # Use computed status based on date
             "type": "booking",
             "requester": requester_name or "Unknown",
             "requesterId": requester_id or 0

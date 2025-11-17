@@ -153,6 +153,7 @@ export const BookingProvider = ({ children }) => {
     if (event.type === 'timetable') return 'timetable';
     if (event.status === 'approved') return 'approved';
     if (event.status === 'pending') return 'pending';
+    if (event.status === 'conducted') return 'conducted';
     return 'free';
   };
 

@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useAuth } from '../context/AuthContext';
 import { useBooking } from '../context/BookingContext';
 import EventInfoModal from './EventInfoModal';
+import { getBookingDisplayStatus } from '../utils/bookingUtils';
 
 const ApproverDashboard = () => {
   const { user, logout } = useAuth();
@@ -61,6 +62,9 @@ const ApproverDashboard = () => {
 
   const formatCalendarEvents = () => {
     try {
+      if (!calendarEvents || calendarEvents.length === 0) {
+        return [];
+      }
       return calendarEvents.map(event => {
         // Format time for display
         const startDate = new Date(event.start);
@@ -108,6 +112,25 @@ const ApproverDashboard = () => {
           } else {
             backgroundColor = 'rgba(254, 243, 199, 0.5)'; // Light yellow for unknown resource
             textColor = '#92400e';
+            resourceIcon = 'clock';
+          }
+        } else if (event.status === 'conducted') {
+          // Show resource colors for conducted events - slightly more opaque
+          if (event.resource === 'Seminar Hall') {
+            backgroundColor = 'rgba(59, 130, 246, 0.4)'; // Slightly more opaque Blue
+            textColor = '#1e40af'; // Dark blue text
+            resourceIcon = 'building';
+          } else if (event.resource === 'Auditorium') {
+            backgroundColor = 'rgba(239, 68, 68, 0.4)'; // Slightly more opaque Red
+            textColor = '#991b1b'; // Dark red text
+            resourceIcon = 'building';
+          } else if (event.resource === 'Lab') {
+            backgroundColor = 'rgba(34, 197, 94, 0.4)'; // Slightly more opaque Green
+            textColor = '#166534'; // Dark green text
+            resourceIcon = 'flask';
+          } else {
+            backgroundColor = 'rgba(147, 197, 253, 0.4)'; // Light blue for unknown resource
+            textColor = '#1e40af';
             resourceIcon = 'clock';
           }
         } else {
@@ -314,13 +337,18 @@ const ApproverDashboard = () => {
                             Submitted: {formatDateTime(request.createdAt)}
                           </div>
                           <div>
+                            {(() => {
+                              const displayStatus = getBookingDisplayStatus(request);
+                              return (
                             <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
-                              request.status === 'pending' ? 'bg-yellow-500 text-white' :
-                              request.status === 'approved' ? 'bg-green-500 text-white' :
-                              'bg-red-500 text-white'
+                                  displayStatus === 'pending' ? 'bg-yellow-500 text-black' :
+                                  displayStatus === 'conducted' ? 'bg-blue-500 text-white' :
+                                  'bg-yellow-500 text-black'
                             }`}>
-                              Status: {request.status.toUpperCase()}
+                                  Status: {displayStatus.toUpperCase()}
                             </span>
+                              );
+                            })()}
                         </div>
                         </div>
                       </div>

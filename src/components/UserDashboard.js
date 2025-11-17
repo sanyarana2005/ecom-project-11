@@ -8,6 +8,7 @@ import { useBooking } from '../context/BookingContext';
 import BookingForm from './BookingForm';
 import EventInfoModal from './EventInfoModal';
 import BookingSidePanel from './BookingSidePanel';
+import { getBookingDisplayStatus } from '../utils/bookingUtils';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -103,6 +104,9 @@ const UserDashboard = () => {
 
   const formatCalendarEvents = () => {
     try {
+      if (!calendarEvents || calendarEvents.length === 0) {
+        return [];
+      }
       return calendarEvents.map(event => {
         const eventType = getEventType(event);
         
@@ -180,6 +184,27 @@ const UserDashboard = () => {
               resourceIcon = 'clock';
             }
             className = 'fc-pending-event';
+            break;
+          case 'conducted':
+            // Show resource colors for conducted events - slightly muted but visible
+            if (event.resource === 'Seminar Hall') {
+              backgroundColor = 'rgba(59, 130, 246, 0.4)'; // Slightly more opaque Blue
+              textColor = '#1e40af'; // Dark blue text
+              resourceIcon = 'building';
+            } else if (event.resource === 'Auditorium') {
+              backgroundColor = 'rgba(239, 68, 68, 0.4)'; // Slightly more opaque Red
+              textColor = '#991b1b'; // Dark red text
+              resourceIcon = 'building';
+            } else if (event.resource === 'Lab') {
+              backgroundColor = 'rgba(34, 197, 94, 0.4)'; // Slightly more opaque Green
+              textColor = '#166534'; // Dark green text
+              resourceIcon = 'flask';
+            } else {
+              backgroundColor = 'rgba(147, 197, 253, 0.4)'; // Light blue for unknown resource
+              textColor = '#1e40af';
+              resourceIcon = 'clock';
+            }
+            className = 'fc-conducted-event';
             break;
           default:
             backgroundColor = '#f3f4f6'; // Light gray
@@ -544,14 +569,18 @@ const UserDashboard = () => {
                             </p>
                           </div>
                         </div>
-                        {booking.status !== 'pending' && (
-                          <span className={`px-4 py-2 border-2 border-black text-sm font-bold uppercase ml-4 ${
-                            booking.status === 'approved' ? 'bg-green-500 text-white' :
-                            'bg-red-500 text-white'
+                        {(() => {
+                          const displayStatus = getBookingDisplayStatus(booking);
+                          return (
+                            <span className={`px-3 py-1 rounded-lg border text-xs font-medium ml-4 ${
+                              displayStatus === 'pending' ? 'bg-yellow-200 border-yellow-400 text-amber-900' :
+                              displayStatus === 'conducted' ? 'bg-blue-200 border-blue-400 text-blue-900' :
+                              'bg-yellow-200 border-yellow-400 text-amber-900'
                           }`}>
-                            {booking.status}
+                              {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                           </span>
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}

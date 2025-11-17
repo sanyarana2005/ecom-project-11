@@ -1,4 +1,5 @@
 import React from 'react';
+import { getBookingDisplayStatus } from '../utils/bookingUtils';
 
 const BookingSidePanel = ({ isOpen, onClose, booking, onEdit, onCancel }) => {
   if (!isOpen || !booking) return null;
@@ -55,12 +56,26 @@ const BookingSidePanel = ({ isOpen, onClose, booking, onEdit, onCancel }) => {
                 <h3 className="text-2xl font-black text-black uppercase">{booking.title}</h3>
               </div>
 
-              {/* Resource */}
+              {/* Resource with Status */}
               <div>
                 <label className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-2 block">
                   Resource
                 </label>
+                <div className="flex justify-between items-center">
                 <p className="text-lg font-bold text-black">{booking.resource}</p>
+                  {(() => {
+                    const displayStatus = getBookingDisplayStatus(booking);
+                    return (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-lg border text-xs font-medium ${
+                        displayStatus === 'pending' ? 'bg-yellow-200 border-yellow-400 text-amber-900' :
+                        displayStatus === 'conducted' ? 'bg-blue-200 border-blue-400 text-blue-900' :
+                        'bg-yellow-200 border-yellow-400 text-amber-900'
+                      }`}>
+                        {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
 
               {/* Date & Time */}
@@ -85,22 +100,6 @@ const BookingSidePanel = ({ isOpen, onClose, booking, onEdit, onCancel }) => {
                   {booking.purpose || booking.description || 'No description provided'}
                 </p>
               </div>
-
-              {/* Status */}
-              {booking.status && booking.status !== 'pending' && (
-                <div>
-                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-2 block">
-                    Status
-                  </label>
-                  <span className={`inline-flex items-center px-4 py-2 border-2 border-black text-sm font-bold uppercase ${
-                    booking.status === 'approved' ? 'bg-green-500 text-white' :
-                    booking.status === 'rejected' ? 'bg-red-500 text-white' :
-                    'bg-yellow-400 text-black'
-                  }`}>
-                    {booking.status}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 

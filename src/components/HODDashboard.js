@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBooking } from '../context/BookingContext';
+import { getBookingDisplayStatus } from '../utils/bookingUtils';
 
 const HODDashboard = () => {
   const { user, logout } = useAuth();
@@ -172,6 +173,17 @@ const HODDashboard = () => {
                           <span className={`inline-flex items-center px-4 py-2 border-4 border-brutal-black text-sm font-bold uppercase tracking-wide ${getResourceColor(request.resource)}`}>
                             {request.resource}
                           </span>
+                          {(() => {
+                            const displayStatus = getBookingDisplayStatus(request);
+                            if (displayStatus === 'conducted') {
+                              return (
+                                <span className="inline-flex items-center px-4 py-2 border-4 border-brutal-black text-sm font-bold uppercase tracking-wide bg-blue-500 text-white">
+                                  CONDUCTED
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg text-brutal-black mb-6">

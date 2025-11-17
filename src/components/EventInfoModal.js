@@ -1,4 +1,5 @@
 import React from 'react';
+import { getBookingDisplayStatus } from '../utils/bookingUtils';
 
 const EventInfoModal = ({ isOpen, onClose, selectedDate, events }) => {
   if (!isOpen || !selectedDate) return null;
@@ -77,6 +78,7 @@ const EventInfoModal = ({ isOpen, onClose, selectedDate, events }) => {
                 const startTime = formatTime(event.start);
                 const endTime = event.end ? formatTime(event.end) : '';
                 const eventType = event.type || (event.status === 'pending' ? 'pending' : 'approved');
+                const displayStatus = getBookingDisplayStatus(event);
                 
                 let statusColor = 'bg-blue-100 text-blue-800 border-blue-200';
                 let statusText = 'Scheduled';
@@ -84,15 +86,15 @@ const EventInfoModal = ({ isOpen, onClose, selectedDate, events }) => {
                 if (eventType === 'timetable') {
                   statusColor = 'bg-gray-100 text-gray-800 border-gray-200';
                   statusText = 'Class Schedule';
-                } else if (event.status === 'pending') {
+                } else if (displayStatus === 'pending') {
                   statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
                   statusText = 'Pending';
-                } else if (event.status === 'approved') {
-                  statusColor = 'bg-green-100 text-green-800 border-green-200';
-                  statusText = 'Approved';
-                } else if (event.status === 'rejected') {
-                  statusColor = 'bg-red-100 text-red-800 border-red-200';
-                  statusText = 'Rejected';
+                } else if (displayStatus === 'conducted') {
+                  statusColor = 'bg-blue-100 text-blue-800 border-blue-200';
+                  statusText = 'Conducted';
+                } else {
+                  statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                  statusText = 'Pending';
                 }
 
                 return (
