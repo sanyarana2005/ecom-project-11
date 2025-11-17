@@ -252,29 +252,23 @@ def _seed_demo_bookings(cur):
         
         # Demo bookings
         demo_bookings = [
-            # Student bookings
+            # Student bookings (3 bookings - different from teacher)
             (student_id, resource_map.get('Lab', 3), "Machine Learning Workshop",
              (today + timedelta(days=6)).strftime("%Y-%m-%d"), "10:00", "12:00",
              "Hands-on workshop on neural networks and deep learning", "pending"),
             (student_id, resource_map.get('Seminar Hall', 1), "Project Presentation",
              (today + timedelta(days=7)).strftime("%Y-%m-%d"), "14:00", "16:00",
              "Final year project presentation and demonstration", "pending"),
-            (student_id, resource_map.get('Seminar Hall', 1), "Project Demo Day",
+            (student_id, resource_map.get('Auditorium', 2), "Project Demo Day",
              (today + timedelta(days=9)).strftime("%Y-%m-%d"), "14:00", "16:00",
              "Demonstrating final year projects to faculty and peers", "pending"),
-            # Teacher bookings
+            # Teacher bookings (only 2: one conducted, one pending)
             (teacher_id, resource_map.get('Auditorium', 2), "Faculty Development Session",
              (today - timedelta(days=8)).strftime("%Y-%m-%d"), "14:00", "16:00",
              "Training session on modern teaching methodologies", "conducted"),
             (teacher_id, resource_map.get('Seminar Hall', 1), "Research Presentation",
              (today + timedelta(days=3)).strftime("%Y-%m-%d"), "10:00", "12:00",
              "Presenting research findings to department", "pending"),
-            (teacher_id, resource_map.get('Lab', 3), "Programming Workshop",
-             (today + timedelta(days=5)).strftime("%Y-%m-%d"), "13:00", "15:00",
-             "Teaching advanced programming concepts", "pending"),
-            (teacher_id, resource_map.get('Seminar Hall', 1), "Curriculum Review Meeting",
-             (today + timedelta(days=7)).strftime("%Y-%m-%d"), "11:00", "13:00",
-             "Reviewing and updating course curriculum", "pending"),
             # HOD bookings
             (hod_id, resource_map.get('Auditorium', 2), "Department Annual Meeting",
              (today - timedelta(days=5)).strftime("%Y-%m-%d"), "10:00", "12:00",
