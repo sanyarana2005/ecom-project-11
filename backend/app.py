@@ -250,31 +250,47 @@ def _seed_demo_bookings(cur):
         
         today = datetime.now()
         
-        # Demo bookings
+        # Helper function to get next weekday (skip weekends)
+        def get_next_weekday(start_date, days_ahead):
+            target_date = start_date + timedelta(days=days_ahead)
+            # If it's Saturday (5) or Sunday (6), move to Monday
+            while target_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                target_date += timedelta(days=1)
+            return target_date
+        
+        # Helper function to get previous weekday (skip weekends)
+        def get_previous_weekday(start_date, days_back):
+            target_date = start_date - timedelta(days=days_back)
+            # If it's Saturday (5) or Sunday (6), move to Friday
+            while target_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                target_date -= timedelta(days=1)
+            return target_date
+        
+        # Demo bookings - ensure no bookings on weekends
         demo_bookings = [
             # Student bookings (3 bookings - different from teacher)
             (student_id, resource_map.get('Lab', 3), "Machine Learning Workshop",
-             (today + timedelta(days=6)).strftime("%Y-%m-%d"), "10:00", "12:00",
+             get_next_weekday(today, 6).strftime("%Y-%m-%d"), "10:00", "12:00",
              "Hands-on workshop on neural networks and deep learning", "pending"),
             (student_id, resource_map.get('Seminar Hall', 1), "Project Presentation",
-             (today + timedelta(days=7)).strftime("%Y-%m-%d"), "14:00", "16:00",
+             get_next_weekday(today, 7).strftime("%Y-%m-%d"), "14:00", "16:00",
              "Final year project presentation and demonstration", "pending"),
             (student_id, resource_map.get('Auditorium', 2), "Project Demo Day",
-             (today + timedelta(days=9)).strftime("%Y-%m-%d"), "14:00", "16:00",
+             get_next_weekday(today, 9).strftime("%Y-%m-%d"), "14:00", "16:00",
              "Demonstrating final year projects to faculty and peers", "pending"),
             # Teacher bookings (only 2: one conducted, one pending)
             (teacher_id, resource_map.get('Auditorium', 2), "Faculty Development Session",
-             (today - timedelta(days=8)).strftime("%Y-%m-%d"), "14:00", "16:00",
+             get_previous_weekday(today, 8).strftime("%Y-%m-%d"), "14:00", "16:00",
              "Training session on modern teaching methodologies", "conducted"),
             (teacher_id, resource_map.get('Seminar Hall', 1), "Research Presentation",
-             (today + timedelta(days=3)).strftime("%Y-%m-%d"), "10:00", "12:00",
+             get_next_weekday(today, 3).strftime("%Y-%m-%d"), "10:00", "12:00",
              "Presenting research findings to department", "pending"),
             # HOD bookings
             (hod_id, resource_map.get('Auditorium', 2), "Department Annual Meeting",
-             (today - timedelta(days=5)).strftime("%Y-%m-%d"), "10:00", "12:00",
+             get_previous_weekday(today, 5).strftime("%Y-%m-%d"), "10:00", "12:00",
              "Annual department meeting to discuss achievements and plans", "conducted"),
             (hod_id, resource_map.get('Seminar Hall', 1), "Industry Collaboration Workshop",
-             (today + timedelta(days=10)).strftime("%Y-%m-%d"), "09:00", "11:00",
+             get_next_weekday(today, 10).strftime("%Y-%m-%d"), "09:00", "11:00",
              "Workshop on industry-academia collaboration", "pending"),
         ]
         
