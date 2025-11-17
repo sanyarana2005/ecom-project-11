@@ -32,9 +32,11 @@ const UserDashboard = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
-    loadCalendarEvents();
-    loadMyBookings();
-  }, [loadCalendarEvents, loadMyBookings]);
+    if (user) {
+      loadCalendarEvents();
+      loadMyBookings();
+    }
+  }, [user, loadCalendarEvents, loadMyBookings]);
 
   const handleLogout = () => {
     logout();

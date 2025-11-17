@@ -35,10 +35,16 @@ export const BookingProvider = ({ children }) => {
   // Load my bookings
   const loadMyBookings = React.useCallback(async () => {
     try {
+      setLoading(true);
       const bookings = await apiService.getMyBookings();
-      setMyBookings(bookings);
+      console.log('Loaded my bookings:', bookings);
+      setMyBookings(Array.isArray(bookings) ? bookings : []);
     } catch (error) {
       console.error('Failed to load my bookings:', error);
+      setMyBookings([]);
+      notificationService.error('Error', 'Failed to load your bookings');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
