@@ -323,8 +323,9 @@ const ApproverDashboard = () => {
                 const conductedBookings = allBookings.filter(event => {
                   const eventDate = new Date(event.start);
                   eventDate.setHours(0, 0, 0, 0);
+                  // Include events that are before today (past events)
                   return eventDate < today;
-                });
+                }).sort((a, b) => new Date(b.start) - new Date(a.start)); // Sort by date (newest first)
                 
                 const allBookingsToShow = [...upcomingBookings, ...conductedBookings];
                 
@@ -395,11 +396,9 @@ const ApproverDashboard = () => {
                   {/* Conducted Events Section */}
                   {conductedBookings.length > 0 && (
                     <>
-                      {upcomingBookings.length > 0 && (
-                        <div className="sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 mt-6 z-10">
-                          <h3 className="text-md font-black text-black uppercase">Conducted Events</h3>
-                        </div>
-                      )}
+                      <div className={`sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 z-10 ${upcomingBookings.length > 0 ? 'mt-6' : ''}`}>
+                        <h3 className="text-md font-black text-black uppercase">Conducted Events</h3>
+                      </div>
                       {conductedBookings.map((event) => {
                         const displayStatus = getBookingDisplayStatus(event);
                         return (
