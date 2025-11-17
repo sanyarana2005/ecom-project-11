@@ -401,48 +401,50 @@ const ApproverDashboard = () => {
                         </div>
                       )}
                       {conductedBookings.map((event) => {
-                    const displayStatus = getBookingDisplayStatus(event);
-                    return (
-                      <div key={event.id} className="border-4 border-black p-4 bg-white shadow-brutal">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-3">
-                              <h3 className="text-lg font-black text-black uppercase">{event.title || 'Untitled Event'}</h3>
-                              <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
-                                event.resource === 'Seminar Hall' ? 'bg-blue-500 text-white' :
-                                event.resource === 'Auditorium' ? 'bg-red-500 text-white' :
-                                'bg-green-500 text-white'
-                              }`}>
-                                {event.resource}
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold text-black mb-3">
-                              <div>
-                                <span className="uppercase">Requester:</span> {event.requester || 'Unknown'}
-                              </div>
-                              <div>
-                                <span className="uppercase">Date & Time:</span> {formatDateTime(event.start)}
-                              </div>
-                              <div className="md:col-span-2">
-                                <span className="uppercase">Purpose:</span> {event.purpose || 'N/A'}
-                              </div>
-                            </div>
+                        const displayStatus = getBookingDisplayStatus(event);
+                        return (
+                          <div key={event.id} className="border-4 border-black p-4 bg-white shadow-brutal opacity-75">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-3">
+                                  <h3 className="text-lg font-black text-black uppercase">{event.title || 'Untitled Event'}</h3>
+                                  <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
+                                    event.resource === 'Seminar Hall' ? 'bg-blue-500 text-white' :
+                                    event.resource === 'Auditorium' ? 'bg-red-500 text-white' :
+                                    'bg-green-500 text-white'
+                                  }`}>
+                                    {event.resource}
+                                  </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold text-black mb-3">
+                                  <div>
+                                    <span className="uppercase">Requester:</span> {event.requester || 'Unknown'}
+                                  </div>
+                                  <div>
+                                    <span className="uppercase">Date & Time:</span> {formatDateTime(event.start)}
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <span className="uppercase">Purpose:</span> {event.purpose || 'N/A'}
+                                  </div>
+                                </div>
 
-                            <div>
-                              <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
-                                displayStatus === 'pending' ? 'bg-yellow-500 text-black' :
-                                displayStatus === 'conducted' ? 'bg-blue-500 text-white' :
-                                'bg-yellow-500 text-black'
-                              }`}>
-                                Status: {displayStatus.toUpperCase()}
-                              </span>
+                                <div>
+                                  <span className={`inline-flex items-center px-3 py-1 border-2 border-black text-xs font-bold uppercase ${
+                                    displayStatus === 'pending' ? 'bg-yellow-500 text-black' :
+                                    displayStatus === 'conducted' ? 'bg-blue-500 text-white' :
+                                    'bg-yellow-500 text-black'
+                                  }`}>
+                                    Status: {displayStatus.toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               )})()}
           </div>
