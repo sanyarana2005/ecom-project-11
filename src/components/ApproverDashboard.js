@@ -270,7 +270,19 @@ const ApproverDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white border-4 border-black p-6 shadow-brutal">
             <h3 className="text-lg font-black text-black uppercase tracking-wide mb-4">UPCOMING EVENTS</h3>
-            <div className="text-4xl font-black text-purple-600">{pendingRequests?.length || 0}</div>
+            <div className="text-4xl font-black text-purple-600">
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const upcomingCount = (calendarEvents || []).filter(event => {
+                  if (event.type === 'timetable') return false;
+                  const eventDate = new Date(event.start);
+                  eventDate.setHours(0, 0, 0, 0);
+                  return eventDate >= today;
+                }).length;
+                return upcomingCount;
+              })()}
+            </div>
           </div>
           <div className="bg-white border-4 border-black p-6 shadow-brutal">
             <h3 className="text-lg font-black text-black uppercase tracking-wide mb-4">TOTAL RESOURCES</h3>
