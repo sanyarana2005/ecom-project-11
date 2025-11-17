@@ -299,7 +299,13 @@ def _seed_demo_bookings(cur):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, demo_bookings)
         
+        # Verify bookings were created
+        cur.execute("SELECT COUNT(*) FROM bookings WHERE user_id IN (?, ?, ?)", (student_id, teacher_id, hod_id))
+        created_count = cur.fetchone()[0]
+        
         logging.info(f"Seeded {len(demo_bookings)} demo bookings")
+        logging.info(f"Verified: {created_count} bookings exist for demo users")
+        logging.info(f"Student ID: {student_id}, Teacher ID: {teacher_id}, HOD ID: {hod_id}")
     except Exception as e:
         logging.warning(f"Failed to seed demo bookings: {str(e)}")
 
