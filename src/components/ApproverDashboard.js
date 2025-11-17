@@ -272,11 +272,16 @@ const ApproverDashboard = () => {
             <h3 className="text-lg font-black text-black uppercase tracking-wide mb-4">UPCOMING EVENTS</h3>
             <div className="text-4xl font-black text-purple-600">
               {(() => {
-                // Count all booking events (both upcoming and conducted)
-                const allBookingsCount = (calendarEvents || []).filter(event => {
-                  return event.type !== 'timetable';
+                // Count all upcoming booking events (today or future, not timetable)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const upcomingCount = (calendarEvents || []).filter(event => {
+                  if (event.type === 'timetable') return false;
+                  const eventDate = new Date(event.start);
+                  eventDate.setHours(0, 0, 0, 0);
+                  return eventDate >= today;
                 }).length;
-                return allBookingsCount;
+                return upcomingCount;
               })()}
             </div>
           </div>
@@ -396,9 +401,16 @@ const ApproverDashboard = () => {
                   {/* Conducted Events Section */}
                   {conductedBookings.length > 0 && (
                     <>
-                      <div className={`sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 z-10 ${upcomingBookings.length > 0 ? 'mt-6' : ''}`}>
-                        <h3 className="text-md font-black text-black uppercase">Conducted Events</h3>
-                      </div>
+                      {upcomingBookings.length > 0 && (
+                        <div className="sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 mt-6 z-10">
+                          <h3 className="text-md font-black text-black uppercase">Conducted Events</h3>
+                        </div>
+                      )}
+                      {upcomingBookings.length === 0 && (
+                        <div className="sticky top-0 bg-white border-b-2 border-black pb-2 mb-4 z-10">
+                          <h3 className="text-md font-black text-black uppercase">Conducted Events</h3>
+                        </div>
+                      )}
                       {conductedBookings.map((event) => {
                         const displayStatus = getBookingDisplayStatus(event);
                         return (
