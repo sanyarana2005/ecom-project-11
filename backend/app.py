@@ -8,6 +8,7 @@ import logging
 import hashlib
 import secrets
 import bcrypt
+import jwt
 
 # ---------------- Configuration ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,8 +20,10 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 logging.basicConfig(level=logging.INFO)
 
-# Simple token storage (in production, use JWT library)
-TOKEN_STORE = {}  # token -> user_id mapping
+# JWT Configuration
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production-12345')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24 * 7  # 7 days
 
 @app.route("/", methods=["GET"])
 def index():
@@ -48,23 +51,60 @@ def date_ok(d):
     except:
         return False
 
+def generate_token(user_id):
+    """Generate JWT token for user"""
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
+        'iat': datetime.utcnow()
+    }
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    # PyJWT 2.x returns a string, not bytes
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
+    return token
+
 def get_user_from_token():
-    """Extract user from Authorization header"""
+    """Extract user from Authorization header using JWT"""
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
         return None
     token = auth_header.replace('Bearer ', '').strip()
-    user_id = TOKEN_STORE.get(token)
-    if not user_id:
+    
+    try:
+        # Decode JWT token
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get('user_id')
+        
+        if not user_id:
+            return None
+        
+        # Get user from database
+        conn = db_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT id, username, role, name, department, department_id FROM users WHERE id=?", (user_id,))
+        row = cur.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                "id": row[0],
+                "email": row[1],
+                "role": row[2],
+                "name": row[3] if row[3] else row[1],
+                "department": row[4] if row[4] else "Computer Science",
+                "department_id": row[5] if row[5] else 1
+            }
         return None
-    conn = db_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, username, role FROM users WHERE id=?", (user_id,))
-    row = cur.fetchone()
-    conn.close()
-    if row:
-        return {"id": row[0], "email": row[1], "role": row[2]}
-    return None
+    except jwt.ExpiredSignatureError:
+        logging.warning("Token expired")
+        return None
+    except jwt.InvalidTokenError:
+        logging.warning("Invalid token")
+        return None
+    except Exception as e:
+        logging.error(f"Error decoding token: {str(e)}")
+        return None
 
 def require_auth():
     """Middleware to require authentication"""
@@ -381,9 +421,8 @@ def login():
         
         conn.close()
         
-        # Generate token
-        token = secrets.token_urlsafe(32)
-        TOKEN_STORE[token] = user_id
+        # Generate JWT token
+        token = generate_token(user_id)
         
         # Return response matching frontend format
         return jsonify({
@@ -435,8 +474,8 @@ def login():
                 return jsonify({"message": "Invalid credentials"}), 401
             
             conn.close()
-            token = secrets.token_urlsafe(32)
-            TOKEN_STORE[token] = user_id
+            # Generate JWT token
+            token = generate_token(user_id)
             return jsonify({
                 "token": token,
                 "user": {
@@ -543,9 +582,8 @@ def signup():
         user_id = cur.lastrowid
         conn.close()
         
-        # Generate token and return user
-        token = secrets.token_urlsafe(32)
-        TOKEN_STORE[token] = user_id
+        # Generate JWT token and return user
+        token = generate_token(user_id)
         
         return jsonify({
             "token": token,
